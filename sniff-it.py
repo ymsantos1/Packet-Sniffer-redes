@@ -1,118 +1,151 @@
-#Packet sniffer in Python
-#Linux based implementation
+#!/usr/bin/env python3
+"""Tiny Linux packet sniffer for IPv4/TCP packets."""
 
-'''
+import errno
 import socket
+import struct
+import sys
 
-#create an INET raw socket
-s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
 
-#receive a packet
-while True:
-	print s.recvfrom(65565)
+ETH_P_ALL = 0x0003
+ETH_HEADER_LENGTH = 14
+IP_HEADER_MIN_LENGTH = 20
+TCP_HEADER_MIN_LENGTH = 20
+IPPROTO_TCP = 6
 
-'''
-import socket, sys
-from struct import *
 
-#Get string of 6 characters as ethernet address into dash seperated hex string
-def eth_addr(a):
-	b = "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x" %(ord(a[0]),ord(a[1]),ord(a[2]),ord(a[3]),ord(a[4]),ord(a[5]))
-	return b
+def eth_addr(address: bytes) -> str:
+    return ":".join(f"{byte:02x}" for byte in address)
 
-#create an INET, STREAMing socket
-try:
-	#s=socket.socket(socket.AF_PACKET,socket.SOCK_RAW,socket.ntohs(0x0003))
-	s=socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
-	#AF_INET is the family of sockets created - TCP or UDP
-	#Socket type is SOCK_RAW instead of SOCK_STREAM or SOCK_DGRAM
-	#Socket protocol specified is IP-PROTO_<TCP/UDP/ICMP>
-except socket.error,msg:
-	print 'Socket could not be created. Error Code : '+str(msg[0])+'Message '+msg[1] 
-	sys.exit
-count = 0
-print 'Getting a packet\n\n'
-#get a packet 
-while True:
-	packet = s.recvfrom(65565) #keep in mind that this port binding won't work in Windows
-				   #Windows uses a Winsock API hook or Winpcap driver for sockets
-	#socket.recvfrom(buffersize,[flags]) gets the data from the socket. O/P - (string,address)
 
-	print 'Packet Received:'+str(packet)+'\n\n'
-	count= count+1
-	#packet string from tuple
-	packet=packet[0]
-	
-	#-------------------L2 Information-------------------------------------
-	eth_length = 14
-	eth_header = packet[:eth_length]
-	eth_unpack =  unpack('!6s6sH',eth_header)
-	eth_protocol = socket.ntohs(eth_unpack[2])
-	print '###############Layer 2 Information############'
-	print 'Destination MAC:'+eth_addr(packet[0:6])
-	print 'Source MAC:'+eth_addr(packet[6:12])
-	print 'Protcol:'+str(eth_protocol)
-	print '-----------------------------------------------------------------\n\n' 
-	
-        #-------------------IP HEADER EXTRACTION--------------------------------
-	#take the first 20 characters for the IP header
-	ip_header = packet[0:20]
-	
-	#now unpack 'em
-	header_unpacked = unpack('!BBHHHBBH4s4s',ip_header)
-	#https://docs.python.org/2/library/struct.html#format-characters
-	
-	version_ih1= header_unpacked[0] 
-	version = version_ih1 >> 4 
-	ih1 = version_ih1 & 0xF
-	
-	iph_length = ih1*4
-	
-	ttl = header_unpacked[5]
-	protocol = header_unpacked[6]
-	source_add = socket.inet_ntoa(header_unpacked[8])
-	destination_add = socket.inet_ntoa(header_unpacked[9])
-	print '##########IP Header Info##############'
-	print 'Version : '+str(version)+ '\nIP Header Length:'+str(ih1)+'\nTTL:'+str(ttl)+'\nProtocol:'+str(protocol)+'\nSource Address:'+str(source_add)+'\nDestination Address:'+str(destination_add)
-	print '-------------------------------------------\n\n'
+def create_raw_socket() -> socket.socket:
+    try:
+        return socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(ETH_P_ALL))
+    except PermissionError as exc:
+        print(f"Socket could not be created: {exc}", file=sys.stderr)
+        print(
+            "Raw packet capture needs root or CAP_NET_RAW. Try: "
+            "sudo uv run sniff-it.py",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except OSError as exc:
+        if exc.errno == errno.EPERM:
+            print(f"Socket could not be created: {exc}", file=sys.stderr)
+            print(
+                "Raw packet capture needs root or CAP_NET_RAW. Try: "
+                "sudo uv run sniff-it.py",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
-	#-----------------------------------------------------------------------------
+        print(f"Socket could not be created: {exc}", file=sys.stderr)
+        sys.exit(1)
 
-	#----------------TCP HEADER EXTRACTION----------------------------------------
-	#tcp_header = packet[iph_length:iph_length+20] 
-	#t=iph_length+eth_length
-	tcp_header = packet[iph_length:iph_length+20]
 
-	#unpack them 
-	tcph = unpack('!HHLLBBHHH',tcp_header)
-	
-	source_port = tcph[0]
-	dest_port = tcph[1]
-	sequence = tcph[2]
-	ack = tcph[3]
-	resrve = tcph[4]
-	tcph_len = resrve >> 4
+def parse_ethernet_header(packet: bytes) -> tuple[str, str, int]:
+    eth_header = packet[:ETH_HEADER_LENGTH]
+    destination, source, protocol = struct.unpack("!6s6sH", eth_header)
+    return eth_addr(destination), eth_addr(source), protocol
 
-	#print it all out
-	print '###########TCP Header Info##############'
-	print 'Source Port:'+str(source_port)
-	print 'Destination Port:'+str(dest_port)
-	print 'Sequence Number:'+str(sequence)
-	print 'Acknowledgement:'+str(ack)	
-	print 'TCP Header Length:'+str(tcph_len)
-	print '------------------------------------------\n\n'
-	#-------------------------------------------------------------------------------
 
-	#------------------------Get the DATA-------------------------------------------
-	h_size = iph_length+tcph_len*4
-	data_size = len(packet)-h_size
+def parse_ip_header(packet: bytes, offset: int) -> tuple[int, int, int, int, str, str]:
+    ip_header = packet[offset : offset + IP_HEADER_MIN_LENGTH]
+    unpacked = struct.unpack("!BBHHHBBH4s4s", ip_header)
 
-	#get the data yo!
-	data = packet[h_size:]
-	
-	print '##############DATA##################'
-	print 'Data:'+data
-	print '------------------------------------\n\n'
+    version_ihl = unpacked[0]
+    version = version_ihl >> 4
+    ihl = version_ihl & 0xF
+    header_length = ihl * 4
 
-	print ' Packet %d is done!\n'%count 
+    ttl = unpacked[5]
+    protocol = unpacked[6]
+    source = socket.inet_ntoa(unpacked[8])
+    destination = socket.inet_ntoa(unpacked[9])
 
+    return version, ihl, header_length, ttl, protocol, source, destination
+
+
+def parse_tcp_header(packet: bytes, offset: int) -> tuple[int, int, int, int, int]:
+    tcp_header = packet[offset : offset + TCP_HEADER_MIN_LENGTH]
+    unpacked = struct.unpack("!HHLLBBHHH", tcp_header)
+
+    source_port = unpacked[0]
+    destination_port = unpacked[1]
+    sequence = unpacked[2]
+    ack = unpacked[3]
+    tcp_header_length = (unpacked[4] >> 4) * 4
+
+    return source_port, destination_port, sequence, ack, tcp_header_length
+
+
+def print_packet(packet: bytes, count: int) -> None:
+    if len(packet) < ETH_HEADER_LENGTH + IP_HEADER_MIN_LENGTH:
+        return
+
+    destination_mac, source_mac, eth_protocol = parse_ethernet_header(packet)
+    if eth_protocol != 0x0800:
+        return
+
+    print("############### Layer 2 Information ############")
+    print(f"Destination MAC: {destination_mac}")
+    print(f"Source MAC: {source_mac}")
+    print(f"Protocol: {eth_protocol}")
+    print("-------------------------------------------------\n")
+
+    ip_offset = ETH_HEADER_LENGTH
+    version, ihl, ip_header_length, ttl, protocol, source_ip, destination_ip = (
+        parse_ip_header(packet, ip_offset)
+    )
+
+    print("########## IP Header Info ##############")
+    print(f"Version: {version}")
+    print(f"IP Header Length: {ihl}")
+    print(f"TTL: {ttl}")
+    print(f"Protocol: {protocol}")
+    print(f"Source Address: {source_ip}")
+    print(f"Destination Address: {destination_ip}")
+    print("----------------------------------------\n")
+
+    if protocol != IPPROTO_TCP:
+        print(f"Packet {count} skipped: not TCP.\n")
+        return
+
+    tcp_offset = ip_offset + ip_header_length
+    if len(packet) < tcp_offset + TCP_HEADER_MIN_LENGTH:
+        return
+
+    source_port, destination_port, sequence, ack, tcp_header_length = parse_tcp_header(
+        packet, tcp_offset
+    )
+
+    print("########### TCP Header Info ############")
+    print(f"Source Port: {source_port}")
+    print(f"Destination Port: {destination_port}")
+    print(f"Sequence Number: {sequence}")
+    print(f"Acknowledgement: {ack}")
+    print(f"TCP Header Length: {tcp_header_length // 4}")
+    print("----------------------------------------\n")
+
+    data_offset = tcp_offset + tcp_header_length
+    data = packet[data_offset:]
+
+    print("############## DATA ##################")
+    print(f"Data: {data.hex()}")
+    print("--------------------------------------\n")
+    print(f"Packet {count} is done!\n")
+
+
+def main() -> None:
+    raw_socket = create_raw_socket()
+    count = 0
+
+    print("Getting packets...\n")
+    while True:
+        packet, _address = raw_socket.recvfrom(65565)
+        count += 1
+        print_packet(packet, count)
+
+
+if __name__ == "__main__":
+    main()
