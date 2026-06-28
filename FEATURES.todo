@@ -1,0 +1,28 @@
+
+Packet-Sniffer - Checklist Rápido de Funcionalidades
+Gerado a partir da análise de `sniff-it.py` e REQUISITOS_NOVA_VERSAO.md
+
+Implementado:
+- [x] Compatibilidade com Python 3
+- [x] Captura ao vivo (AF_PACKET) — create_raw_socket()
+- [x] Modo de entrada PCAP — read_pcap()
+- [x] Parser Ethernet — parse_ethernet_header()
+- [x] Parser IPv4 — parse_ip_header()
+- [x] Parser TCP — parse_tcp_header()
+- [x] Saída no terminal e logging — emit(), --log
+- [x] Argumentos CLI: --pcap, --live, --max-packets, --show-payload, --log
+- [x] Verificações defensivas / Validação de PCAP
+
+Faltando / Não implementado:
+- [ ] Dispatcher por EtherType (IPv6/ARP/etc.)
+- [ ] Parser IPv6 / despacho por Next Header
+- [ ] Parser UDP
+- [ ] Parser ICMP
+- [ ] Parser ICMPv6
+- [ ] Parser ARP
+- [ ] arp_detector.py (detector de ARP spoofing)
+- [ ] Alertas de anomalia ARP e registro estruturado de alertas
+- [ ] Refatoração modular (capture.py, parsers/, output.py)
+- [ ] Testes / Harness de validação de PCAP
+
+Próxima ação sugerida: implementar `arp_detector.py` e o parser ARP primeiro.
