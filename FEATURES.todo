@@ -1,7 +1,23 @@
-Packet-Sniffer - Checklist Rapido de Funcionalidades
-Gerado a partir da analise de `sniff-it.py`, `arp_detector.py` e `REQUISITOS_NOVA_VERSAO.md`
+Packet-Sniffer - Tasks conforme `Definicao_Trabalho-redes.pdf`
 
-Implementado:
+Fonte: proposta anexada `Definicao_Trabalho-redes.pdf`.
+
+Estabelecido no PDF:
+- Estender o sniffer didatico para interpretar UDP, ICMP, IPv6, ICMPv6 e ARP.
+- Corrigir base para Python 3.
+- Usar captura Linux com raw socket `AF_PACKET`.
+- Corrigir despacho de protocolo: rotear por EtherType e por protocolos internos IPv4/IPv6.
+- Manter tabela de associacoes IP-MAC observadas.
+- Detectar conflito IP-MAC, ARPs nao solicitados repetidos e mesmo MAC reivindicando varios IPs.
+- Mostrar pacotes no terminal.
+- Gravar toda saida em arquivo `.log`.
+- Para ARP anomalo, mostrar aviso com data/hora e motivo junto ao pacote.
+- Permitir leitura de `.pcap` para testes.
+- Validar parsers comparando com Wireshark/tshark.
+- Validar detector ARP em VMs com arpspoof/ettercap.
+- Detecao focada em ARP sobre IPv4/Ethernet; possiveis falsos positivos mitigados por janela/repeticao.
+
+Concluido:
 - [x] Compatibilidade com Python 3
 - [x] Captura ao vivo com `AF_PACKET` - `create_raw_socket()`
 - [x] Modo de entrada PCAP classico - `read_pcap()`
@@ -15,35 +31,44 @@ Implementado:
 - [x] Parser TCP - `parse_tcp_header()`
 - [x] Parser UDP - `parse_udp_header()`
 - [x] Parser ICMP - `parse_icmp_header()`
-- [x] Parser ICMPv6 - reaproveita `parse_icmp_header()`
+- [x] Parser ICMPv6 - reaproveita campos de `parse_icmp_header()`
 - [x] Parser ARP - `parse_arp_header()`
 - [x] Modulo `arp_detector.py`
+- [x] Tabela IP -> MAC com primeira observacao, ultima observacao e contagem
+- [x] Tabela MAC -> IPs observados
 - [x] Deteccao de conflito IP-MAC
 - [x] Deteccao de ARP gratuitous repetido em janela de tempo
 - [x] Deteccao de MAC reivindicando multiplos IPs
-- [x] Alertas ARP exibidos no terminal e gravados no log
+- [x] Alertas ARP exibidos junto ao pacote no terminal
+- [x] Alertas ARP gravados no log
 - [x] Saida no terminal e logging - `emit()`, `--log`
 - [x] Argumentos CLI: `--pcap`, `--live`, `--max-packets`, `--log`
-- [x] Verificacoes defensivas para pacotes curtos/malformados
+- [x] Tratamento de pacotes curtos/malformados
 - [x] Validacao basica de arquivo PCAP
-- [x] Validacao manual com `captura.pcap` gerado por `tcpdump -i any`
-- [x] Log PCAP real gerado em `sniff-it-pcap.log`: IPv4, TCP, UDP e ARP
+- [x] Refatoracao modular: `sniffit/capture.py`, `sniffit/pcap.py`, `sniffit/parsers.py`, `sniffit/formatters.py`, `sniffit/output.py`
 - [x] Gerador de PCAP sintetico de validacao - `tools/generate_validation_pcap.py`
 - [x] PCAP sintetico `validation-ipv6-icmp-arp.pcap`: IPv6, ICMP, ICMPv6, ARP e alertas ARP
+- [x] Log de validacao sintetica `validation-ipv6-icmp-arp.log`
 
-Faltando / Nao implementado:
-- [ ] Testes automatizados para parsers e detector ARP
+Pendente para fechar proposta:
+- [ ] Testes automatizados para parsers Ethernet, IPv4, IPv6, TCP, UDP, ICMP, ICMPv6 e ARP
+- [ ] Testes automatizados para `ArpDetector.process()`
 - [ ] Harness de validacao com arquivos `.pcap` conhecidos
-- [ ] Comparacao documentada com Wireshark ou `tshark`
+- [ ] Comparacao documentada com Wireshark ou `tshark` sobre a mesma captura `.pcap`
+- [ ] Validacao em maquinas virtuais com `arpspoof` ou `ettercap`
+- [ ] Evidencia documentada de alerta para ataque ARP spoofing
+- [ ] Evidencia documentada de trafego ARP legitimo sem excesso de alertas
+- [ ] Alertas ARP com tipo/codigo separado do texto livre, conforme "tipo de alerta" do PDF
+- [ ] Tabela historica MAC -> IPs com primeira/ultima observacao e contagem por associacao
+- [ ] Documentar limitacoes: Linux com privilegio, foco ARP IPv4/Ethernet, falsos positivos DHCP/reinicio, deteccao sem prevencao
+- [ ] Atualizar `TUTORIAL.md`: `--max-packets` default e 0, nao 10; `--show-payload` nao existe
+- [ ] Atualizar `README.md` para refletir Python 3, PCAP, IPv6, UDP, ICMP, ARP e detector
+
+Melhorias fora do minimo do PDF:
 - [ ] Suporte a `.pcapng`
 - [ ] Suporte a IPv6 extension headers antes de TCP/UDP/ICMPv6
-- [ ] Opcao `--show-payload` ou remocao da documentacao que menciona payload
-- [ ] Atualizar `TUTORIAL.md`: hoje `--max-packets` default e 0, nao 10; `--show-payload` nao existe
-- [ ] Atualizar `README.md` para refletir Python 3, PCAP, IPv6, UDP, ICMP, ARP e detector
-- [ ] Refatoracao modular opcional: `capture.py`, `pcap.py`, `parsers.py`, `output.py`
-- [ ] Alertas ARP mais estruturados, com tipo/codigo de alerta separado do texto
-- [ ] Tabela ARP historica mais completa para MAC -> IPs, com primeira/ultima observacao e contagem por associacao
-- [ ] Tratamento de permissao para erro de abertura do arquivo de log
+- [ ] Opcao `--show-payload` ou remocao definitiva da documentacao que menciona payload
+- [ ] Tratamento mais amigavel para erro de abertura do arquivo de log
 
 Proxima acao sugerida:
 - [ ] Criar testes unitarios para `parse_*` e `ArpDetector.process()`, usando pacotes sinteticos pequenos.
