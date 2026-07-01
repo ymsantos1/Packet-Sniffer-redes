@@ -165,3 +165,5 @@ uv run sniff-it.py --pcap captura.pcap --max-packets 0 --log sniff-it.log
 ```
 
 <!-- sudo python3 sniff-it.py --live --max-packets 50 -->
+
+<!-- python3 -m unittest discover -s tests -->
