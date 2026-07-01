@@ -1,9 +1,9 @@
 import unittest
 from pathlib import Path
 
-import arp_detector
 from sniffit.formatters import format_packet
 from sniffit.pcap import read_pcap
+from tools.arp_detector import ArpDetector
 
 
 FIXTURE = Path("validation-ipv6-icmp-arp.pcap")
@@ -18,7 +18,7 @@ class PcapAndFormatterTests(unittest.TestCase):
 
     def test_formats_ipv4_icmp_packet(self):
         packet = next(read_pcap(FIXTURE))
-        lines = format_packet(packet, 1, arp_detector.ArpDetector())
+        lines = format_packet(packet, 1, ArpDetector())
         text = "\n".join(lines)
 
         self.assertIn("EtherType: 0x0800", text)
@@ -29,7 +29,7 @@ class PcapAndFormatterTests(unittest.TestCase):
 
     def test_formats_ipv6_udp_packet(self):
         packet = list(read_pcap(FIXTURE))[2]
-        lines = format_packet(packet, 3, arp_detector.ArpDetector())
+        lines = format_packet(packet, 3, ArpDetector())
         text = "\n".join(lines)
 
         self.assertIn("EtherType: 0x86dd", text)
@@ -39,7 +39,7 @@ class PcapAndFormatterTests(unittest.TestCase):
         self.assertIn("Porta Destino: 53", text)
 
     def test_formats_arp_alerts_from_fixture_sequence(self):
-        detector = arp_detector.ArpDetector()
+        detector = ArpDetector()
         packets = list(read_pcap(FIXTURE))
         all_lines = []
 
@@ -53,7 +53,7 @@ class PcapAndFormatterTests(unittest.TestCase):
 
     def test_short_ethernet_frame_is_discarded(self):
         self.assertEqual(
-            format_packet(b"\x00\x01", 1, arp_detector.ArpDetector()),
+            format_packet(b"\x00\x01", 1, ArpDetector()),
             ["Pacote 1 descartado: menor que o cabeçalho Ethernet."],
         )
 

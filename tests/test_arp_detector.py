@@ -1,6 +1,6 @@
 import unittest
 
-from arp_detector import ArpDetector
+from tools.arp_detector import ArpDetector
 
 
 class ArpDetectorTests(unittest.TestCase):
