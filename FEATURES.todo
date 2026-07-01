@@ -27,7 +27,7 @@ Protocolos e despacho:
 - [x] Interpretar ARP: hardware type, protocol type, HLEN, PLEN, opcode, sender MAC/IP, target MAC/IP
 
 Detector ARP spoofing:
-- [x] Criar modulo `arp_detector.py`
+- [x] Criar modulo `tools/arp_detector.py`
 - [x] Receber campos ARP ja interpretados
 - [x] Manter tabela IP -> MAC observada
 - [x] Manter tabela MAC -> IPs observados
