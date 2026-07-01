@@ -10,6 +10,7 @@ from .constants import ETH_P_ALL
 
 
 def create_raw_socket() -> socket.socket:
+    """Create AF_PACKET raw socket for live Linux packet capture."""
     try:
         return socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(ETH_P_ALL))
     except PermissionError as exc:
@@ -23,8 +24,8 @@ def create_raw_socket() -> socket.socket:
 
 
 def live_packets() -> Iterator[bytes]:
+    """Yield raw Ethernet frames from live capture forever."""
     raw_socket = create_raw_socket()
     while True:
         packet, _address = raw_socket.recvfrom(65565)
         yield packet
-

@@ -7,32 +7,39 @@ import socket
 import struct
 from pathlib import Path
 
+# Ethernet frame type identifiers used in generated frames.
 ETHERTYPE_IPV4 = 0x0800
 ETHERTYPE_IPV6 = 0x86DD
 ETHERTYPE_ARP = 0x0806
 
+# IP protocol and IPv6 next-header identifiers used in generated packets.
 IPPROTO_ICMP = 1
 IPPROTO_UDP = 17
 IPPROTO_ICMPV6 = 58
 
 
 def mac(value: str) -> bytes:
+    """Convert colon-separated MAC text to bytes."""
     return bytes.fromhex(value.replace(":", ""))
 
 
 def ipv4(value: str) -> bytes:
+    """Convert IPv4 text to packed network bytes."""
     return socket.inet_aton(value)
 
 
 def ipv6(value: str) -> bytes:
+    """Convert IPv6 text to packed network bytes."""
     return socket.inet_pton(socket.AF_INET6, value)
 
 
 def ethernet(dst: str, src: str, eth_type: int, payload: bytes) -> bytes:
+    """Build one Ethernet frame around payload bytes."""
     return mac(dst) + mac(src) + struct.pack("!H", eth_type) + payload
 
 
 def ipv4_packet(protocol: int, src: str, dst: str, payload: bytes) -> bytes:
+    """Build minimal IPv4 packet with checksum left zero for parser tests."""
     version_ihl = 0x45
     total_length = 20 + len(payload)
     header = struct.pack(
@@ -52,6 +59,7 @@ def ipv4_packet(protocol: int, src: str, dst: str, payload: bytes) -> bytes:
 
 
 def ipv6_packet(next_header: int, src: str, dst: str, payload: bytes) -> bytes:
+    """Build minimal IPv6 packet with one base header."""
     first_word = 6 << 28
     header = struct.pack(
         "!IHBB16s16s",
@@ -66,11 +74,13 @@ def ipv6_packet(next_header: int, src: str, dst: str, payload: bytes) -> bytes:
 
 
 def udp_packet(src_port: int, dst_port: int, payload: bytes = b"test") -> bytes:
+    """Build UDP segment with checksum left zero for parser tests."""
     length = 8 + len(payload)
     return struct.pack("!HHHH", src_port, dst_port, length, 0) + payload
 
 
 def icmp_packet(icmp_type: int, code: int = 0) -> bytes:
+    """Build ICMP or ICMPv6 header with checksum left zero."""
     return struct.pack("!BBH", icmp_type, code, 0)
 
 
@@ -81,6 +91,7 @@ def arp_packet(
     target_mac: str,
     target_ip: str,
 ) -> bytes:
+    """Build Ethernet/IPv4 ARP packet payload."""
     return struct.pack(
         "!HHBBH6s4s6s4s",
         1,
@@ -96,6 +107,7 @@ def arp_packet(
 
 
 def write_pcap(path: Path, frames: list[bytes]) -> None:
+    """Write frames to little-endian Ethernet PCAP fixture file."""
     with path.open("wb") as pcap:
         pcap.write(struct.pack("<IHHIIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1))
         for index, frame in enumerate(frames, start=1):
@@ -104,6 +116,7 @@ def write_pcap(path: Path, frames: list[bytes]) -> None:
 
 
 def main() -> None:
+    """Regenerate validation PCAP fixture with IPv4, IPv6, UDP, ICMP, and ARP."""
     frames = [
         ethernet(
             "66:77:88:99:aa:bb",

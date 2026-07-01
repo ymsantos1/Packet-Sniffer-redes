@@ -17,15 +17,18 @@ from .constants import (
 
 
 def eth_addr(address: bytes) -> str:
+    """Convert six raw Ethernet address bytes to colon-separated hex."""
     return ":".join(f"{byte:02x}" for byte in address)
 
 
 def parse_ethernet_header(packet: bytes) -> tuple[str, str, int]:
+    """Parse Ethernet destination MAC, source MAC, and EtherType."""
     destination, source, eth_type = struct.unpack("!6s6sH", packet[:ETH_HEADER_LENGTH])
     return eth_addr(destination), eth_addr(source), eth_type
 
 
 def parse_ipv4_header(packet: bytes, offset: int) -> tuple[int, int, int, int, int, str, str]:
+    """Parse fixed IPv4 header fields needed by formatter dispatch."""
     header = packet[offset : offset + IPV4_HEADER_MIN_LENGTH]
     unpacked = struct.unpack("!BBHHHBBH4s4s", header)
 
@@ -43,6 +46,7 @@ def parse_ipv4_header(packet: bytes, offset: int) -> tuple[int, int, int, int, i
 
 
 def parse_ipv6_header(packet: bytes, offset: int) -> tuple[int, int, int, int, int, int, str, str]:
+    """Parse IPv6 base header fields needed by formatter dispatch."""
     header = packet[offset : offset + IPV6_HEADER_LENGTH]
     first_word, payload_length, next_header, hop_limit, source, destination = struct.unpack(
         "!IHBB16s16s", header
@@ -65,6 +69,7 @@ def parse_ipv6_header(packet: bytes, offset: int) -> tuple[int, int, int, int, i
 
 
 def parse_tcp_header(packet: bytes, offset: int) -> tuple[int, int, int, int, int]:
+    """Parse TCP ports, sequence numbers, and computed header length."""
     header = packet[offset : offset + TCP_HEADER_MIN_LENGTH]
     unpacked = struct.unpack("!HHLLBBHHH", header)
 
@@ -78,16 +83,19 @@ def parse_tcp_header(packet: bytes, offset: int) -> tuple[int, int, int, int, in
 
 
 def parse_udp_header(packet: bytes, offset: int) -> tuple[int, int, int, int]:
+    """Parse UDP source port, destination port, length, and checksum."""
     header = packet[offset : offset + UDP_HEADER_LENGTH]
     return struct.unpack("!HHHH", header)
 
 
 def parse_icmp_header(packet: bytes, offset: int) -> tuple[int, int, int]:
+    """Parse ICMP type, code, and checksum."""
     header = packet[offset : offset + ICMP_HEADER_LENGTH]
     return struct.unpack("!BBH", header)
 
 
 def parse_arp_header(packet: bytes, offset: int) -> tuple[int, int, int, int, int, str, str, str, str]:
+    """Parse Ethernet/IPv4 ARP header and convert addresses to strings."""
     header = packet[offset : offset + ARP_HEADER_LENGTH]
     hardware_type, protocol_type, hlen, plen, opcode, sender_mac, sender_ip, target_mac, target_ip = (
         struct.unpack("!HHBBH6s4s6s4s", header)
@@ -103,4 +111,3 @@ def parse_arp_header(packet: bytes, offset: int) -> tuple[int, int, int, int, in
         eth_addr(target_mac),
         socket.inet_ntoa(target_ip),
     )
-

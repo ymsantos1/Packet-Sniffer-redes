@@ -6,6 +6,7 @@ from typing import TextIO
 
 
 def emit(lines: list[str], log_file: TextIO) -> None:
+    """Print formatted lines and append them to log file."""
     if not lines:
         return
 
@@ -15,4 +16,3 @@ def emit(lines: list[str], log_file: TextIO) -> None:
 
     log_file.write(text)
     log_file.write("\n\n")
-

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import arp_detector
+from tools.arp_detector import ArpDetector
 
 from .constants import (
     ARP_HEADER_LENGTH,
@@ -34,6 +34,7 @@ from .parsers import (
 
 
 def format_tcp_lines(packet: bytes, offset: int) -> list[str]:
+    """Return readable TCP header fields from packet bytes at offset."""
     if len(packet) < offset + TCP_HEADER_MIN_LENGTH:
         return ["Cabeçalho TCP truncado."]
 
@@ -52,6 +53,7 @@ def format_tcp_lines(packet: bytes, offset: int) -> list[str]:
 
 
 def format_udp_lines(packet: bytes, offset: int) -> list[str]:
+    """Return readable UDP header fields from packet bytes at offset."""
     if len(packet) < offset + UDP_HEADER_LENGTH:
         return ["Cabeçalho UDP truncado."]
 
@@ -66,6 +68,7 @@ def format_udp_lines(packet: bytes, offset: int) -> list[str]:
 
 
 def format_icmp_lines(packet: bytes, offset: int, label: str) -> list[str]:
+    """Return readable ICMP or ICMPv6 header fields from packet bytes."""
     if len(packet) < offset + ICMP_HEADER_LENGTH:
         return [f"Cabeçalho {label} truncado."]
 
@@ -79,6 +82,7 @@ def format_icmp_lines(packet: bytes, offset: int, label: str) -> list[str]:
 
 
 def format_ipv4_lines(packet: bytes, offset: int) -> list[str]:
+    """Return readable IPv4 fields and nested transport protocol fields."""
     if len(packet) < offset + IPV4_HEADER_MIN_LENGTH:
         return ["Pacote IPv4 truncado."]
 
@@ -114,6 +118,7 @@ def format_ipv4_lines(packet: bytes, offset: int) -> list[str]:
 
 
 def format_ipv6_lines(packet: bytes, offset: int) -> list[str]:
+    """Return readable IPv6 fields and nested next-header fields."""
     if len(packet) < offset + IPV6_HEADER_LENGTH:
         return ["Pacote IPv6 truncado."]
 
@@ -147,7 +152,8 @@ def format_ipv6_lines(packet: bytes, offset: int) -> list[str]:
     return lines
 
 
-def format_arp_lines(packet: bytes, offset: int, detector: arp_detector.ArpDetector) -> list[str]:
+def format_arp_lines(packet: bytes, offset: int, detector: ArpDetector) -> list[str]:
+    """Return readable ARP fields and spoofing alerts from detector."""
     if len(packet) < offset + ARP_HEADER_LENGTH:
         return ["Pacote ARP truncado."]
 
@@ -178,7 +184,8 @@ def format_arp_lines(packet: bytes, offset: int, detector: arp_detector.ArpDetec
     return lines
 
 
-def format_packet(packet: bytes, count: int, detector: arp_detector.ArpDetector) -> list[str]:
+def format_packet(packet: bytes, count: int, detector: ArpDetector) -> list[str]:
+    """Return readable output lines for one Ethernet frame."""
     if len(packet) < ETH_HEADER_LENGTH:
         return [f"Pacote {count} descartado: menor que o cabeçalho Ethernet."]
 
@@ -202,4 +209,3 @@ def format_packet(packet: bytes, count: int, detector: arp_detector.ArpDetector)
         lines.append(f"EtherType 0x{eth_type:04x} não tratado.")
 
     return lines
-

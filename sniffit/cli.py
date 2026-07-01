@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import arp_detector
+from tools.arp_detector import ArpDetector
 
 from .capture import live_packets
 from .formatters import format_packet
@@ -14,6 +14,7 @@ from .pcap import read_pcap
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build command-line parser for live capture and PCAP analysis modes."""
     parser = argparse.ArgumentParser(
         description="Sniff-It: analisador de pacotes Ethernet/IPv4/IPv6/ARP, com detecção de ARP spoofing."
     )
@@ -44,13 +45,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run Sniff-It from parsed CLI arguments."""
     args = build_parser().parse_args()
     if args.max_packets < 0:
         raise SystemExit("--max-packets deve ser >= 0")
     packet_limit = None if args.max_packets == 0 else args.max_packets
 
     packets = live_packets() if args.live else read_pcap(args.pcap)
-    detector = arp_detector.ArpDetector()
+    detector = ArpDetector()
 
     with args.log.open("a", encoding="utf-8") as log_file:
         try:
@@ -62,4 +64,3 @@ def main() -> None:
             print("\nInterrompido pelo usuário.")
         except (OSError, ValueError) as exc:
             raise SystemExit(str(exc)) from exc
-

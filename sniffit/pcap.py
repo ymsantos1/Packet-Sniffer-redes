@@ -17,6 +17,7 @@ from .constants import (
 
 
 def read_pcap(path: Path) -> Iterator[bytes]:
+    """Yield normalized Ethernet frames from a supported PCAP file."""
     with path.open("rb") as pcap_file:
         magic = pcap_file.read(4)
         if magic == b"\xd4\xc3\xb2\xa1":
@@ -59,6 +60,7 @@ def read_pcap(path: Path) -> Iterator[bytes]:
 
 
 def normalize_pcap_packet(packet: bytes, linktype: int) -> bytes:
+    """Convert supported PCAP link-layer packets to Ethernet frames."""
     if linktype == PCAP_LINKTYPE_ETHERNET:
         return packet
     if linktype == PCAP_LINKTYPE_LINUX_SLL:
@@ -69,6 +71,7 @@ def normalize_pcap_packet(packet: bytes, linktype: int) -> bytes:
 
 
 def linux_sll_to_ethernet(packet: bytes) -> bytes:
+    """Convert Linux SLL cooked capture bytes to pseudo-Ethernet."""
     if len(packet) < SLL_HEADER_LENGTH:
         raise ValueError("Arquivo PCAP não suportado: cabeçalho Linux SLL truncado.")
 
@@ -79,6 +82,7 @@ def linux_sll_to_ethernet(packet: bytes) -> bytes:
 
 
 def linux_sll2_to_ethernet(packet: bytes) -> bytes:
+    """Convert Linux SLL2 cooked capture bytes to pseudo-Ethernet."""
     if len(packet) < SLL2_HEADER_LENGTH:
         raise ValueError("Arquivo PCAP não suportado: cabeçalho Linux SLL2 truncado.")
 
@@ -92,7 +96,7 @@ def linux_sll2_to_ethernet(packet: bytes) -> bytes:
 def pseudo_ethernet_frame(
     payload: bytes, eth_type: int, address: bytes, address_length: int
 ) -> bytes:
+    """Build pseudo-Ethernet frame from cooked capture metadata."""
     destination = b"\x00" * 6
     source = address[: min(address_length, 6)].ljust(6, b"\x00")
     return destination + source + struct.pack("!H", eth_type) + payload
-

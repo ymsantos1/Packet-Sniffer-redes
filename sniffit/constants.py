@@ -1,16 +1,20 @@
 """Protocol constants used by Sniff-It."""
 
+# Linux cooked socket protocol value that captures all Ethernet protocols.
 ETH_P_ALL = 0x0003
 
+# Ethernet frame type identifiers.
 ETHERTYPE_IPV4 = 0x0800
 ETHERTYPE_IPV6 = 0x86DD
 ETHERTYPE_ARP = 0x0806
 
+# IP protocol and IPv6 next-header identifiers used by packet dispatch.
 IPPROTO_ICMP = 1
 IPPROTO_TCP = 6
 IPPROTO_UDP = 17
 IPPROTO_ICMPV6 = 58
 
+# Fixed protocol header sizes in bytes.
 ETH_HEADER_LENGTH = 14
 IPV4_HEADER_MIN_LENGTH = 20
 IPV6_HEADER_LENGTH = 40
@@ -19,10 +23,10 @@ UDP_HEADER_LENGTH = 8
 ICMP_HEADER_LENGTH = 4
 ARP_HEADER_LENGTH = 28
 
+# PCAP link-layer types and safety limits for offline analysis.
 PCAP_LINKTYPE_ETHERNET = 1
 PCAP_LINKTYPE_LINUX_SLL = 113
 PCAP_LINKTYPE_LINUX_SLL2 = 276
 SLL_HEADER_LENGTH = 16
 SLL2_HEADER_LENGTH = 20
 MAX_PCAP_PACKET_SIZE = 10_000_000
-
