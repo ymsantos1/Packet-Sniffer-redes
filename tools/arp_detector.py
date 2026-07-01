@@ -1,21 +1,29 @@
-"""Detector de ARP spoofing: tabela IP-MAC e regras de anomalia."""
+"""ARP spoofing detector based on observed IP/MAC associations."""
+
+from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
 
+# Time window used to count repeated gratuitous ARP packets for one IP.
 GRATUITOUS_WINDOW_SECONDS = 10
+
+# Minimum repeated gratuitous ARP observations needed before raising an alert.
 GRATUITOUS_THRESHOLD = 3
 
 
 class ArpDetector:
+    """Keep ARP state and report suspicious IP/MAC behavior."""
+
     def __init__(
         self,
         gratuitous_window_seconds: float = GRATUITOUS_WINDOW_SECONDS,
         gratuitous_threshold: int = GRATUITOUS_THRESHOLD,
     ) -> None:
-        self.ip_to_mac: dict[str, dict] = {}
-        self.mac_to_ips: dict[str, set] = defaultdict(set)
-        self.gratuitous_history: dict[str, deque] = defaultdict(deque)
+        """Create detector with configurable gratuitous ARP limits."""
+        self.ip_to_mac: dict[str, dict[str, float | int | str]] = {}
+        self.mac_to_ips: dict[str, set[str]] = defaultdict(set)
+        self.gratuitous_history: dict[str, deque[float]] = defaultdict(deque)
         self.gratuitous_window_seconds = gratuitous_window_seconds
         self.gratuitous_threshold = gratuitous_threshold
 
@@ -27,6 +35,7 @@ class ArpDetector:
         target_ip: str,
         opcode: int,
     ) -> list[str]:
+        """Inspect one parsed ARP packet and return anomaly alert messages."""
         alerts = []
         now = time.time()
 
@@ -60,6 +69,7 @@ class ArpDetector:
         return alerts
 
     def _update(self, ip: str, mac: str, now: float) -> None:
+        """Record latest IP/MAC observation and refresh reverse lookup state."""
         entry = self.ip_to_mac.get(ip)
         if entry is None or entry["mac"] != mac:
             self.ip_to_mac[ip] = {"mac": mac, "first_seen": now, "last_seen": now, "count": 1}
