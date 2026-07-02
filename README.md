@@ -1,127 +1,215 @@
-# Sniff-It : Packet-Sniffer
-Just a simple packet sniffer. Nothing too fancy. 
-My shout out to Silver Moon for his guide. He's got some pretty cool stuff going on over at Binary Tides. Check it out.
+# Sniff-It
 
-## Synopsis
-This is a python implementation of sniffing packets using sockets.
+Sniff-It é um analisador didático de pacotes de rede escrito em Python 3. Ele
+interpreta quadros Ethernet capturados ao vivo no Linux ou lidos de arquivos
+`.pcap`, mostra os campos principais no terminal e grava a mesma saída em um
+arquivo de log.
 
-## Code Example
-The code is commented to provide clarity.
-Note :  `s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)` , IPPROTO_IP is a dummy protocol not a real one.
-To get all you want with any packet having a Ethernet header, do this : `s = socket.socket( socket.AF_PACKET , socket.SOCK_RAW , socket.ntohs(0x0003))`
-With this you get : All of the incoming and outgoing traffic : `IP packets(TCP , UDP , ICMP)`, packets(like `ARP`), Ethernet Header as well.
-If you have trouble understanding it, email me at : [shreyas.enug@gmail.com](shreyas.enug@gmail.com)
+O projeto também inclui um detector simples de anomalias ARP para apontar
+possíveis sinais de ARP spoofing durante a análise.
 
-##Theory Background
-Some background info by Srinidhi Varadarajan from Vrigina Tech in `ppt` for your reference : [here](http://courses.cs.vt.edu/cs4254/fall04/slides/raw_1.pdf)
+## Funcionalidades
 
+- Captura ao vivo em Linux usando raw socket `AF_PACKET`.
+- Análise offline de arquivos `.pcap`, sem exigir privilégio de root.
+- Suporte a PCAP com linktype Ethernet, Linux SLL e Linux SLL2.
+- Interpretação de Ethernet, IPv4, IPv6, TCP, UDP, ICMP, ICMPv6 e ARP.
+- Despacho por `EtherType`, protocolo IPv4 e `Next Header` IPv6.
+- Tratamento de pacotes curtos, truncados ou com cabeçalho inválido.
+- Saída no terminal e gravação em `.log`.
+- Limite opcional de quantidade de pacotes processados.
+- Alertas para conflitos e comportamentos suspeitos em tráfego ARP.
+- Testes automatizados com `unittest`.
 
-###Ethernet Header
-```
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|       Ethernet destination address (first 32 bits)            |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| Ethernet dest (last 16 bits)  |Ethernet source (first 16 bits)|
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|       Ethernet source address (last 32 bits)                  |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|        Type code              |                               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+## Requisitos
 
-```
-###IP Header
-```
-0                   1                   2                   3   
-    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |Version|  IHL  |Type of Service|          Total Length         |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |         Identification        |Flags|      Fragment Offset    |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |  Time to Live |    Protocol   |         Header Checksum       |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                       Source Address                          |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                    Destination Address                        |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                    Options                    |    Padding    |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   
-```
-###TCP Header
-```
-0                   1                   2                   3
-0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|          Source Port          |       Destination Port        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                        Sequence Number                        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                    Acknowledgment Number                      |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  Data |           |U|A|P|R|S|F|                               |
-| Offset| Reserved  |R|C|S|S|Y|I|            Window             |
-|       |           |G|K|H|T|N|N|                               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|           Checksum            |         Urgent Pointer        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                    Options                    |    Padding    |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                             data                              |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+- Linux para captura ao vivo.
+- Python 3.10 ou superior.
+- Permissão de root ou `CAP_NET_RAW` para `--live`.
+- Nenhuma dependência externa de Python.
+
+Para analisar arquivos `.pcap`, não é necessário executar como root.
+
+## Estrutura do projeto
+
+```text
+sniff-it.py                  Entrada do CLI
+sniffit/
+  capture.py                 Captura ao vivo com raw socket
+  cli.py                     Argumentos e fluxo principal
+  constants.py               Constantes de protocolos
+  formatters.py              Formatação dos pacotes
+  output.py                  Saída no terminal e log
+  parsers.py                 Parsers binários dos cabeçalhos
+  pcap.py                    Leitura e normalização de PCAP
+tools/
+  arp_detector.py            Detector de anomalias ARP
+  generate_validation_pcap.py Gerador da captura de validação
+tests/                       Testes automatizados
+validation-ipv6-icmp-arp.pcap Captura pequena usada nos testes
 ```
 
-###Whats going on with pack and unpack?
-You basically get a packet string from tuple : `packet = packet[0]`
-Then you take first 20 characters for the ip header : `ip_header = packet[0:20]`
-Extracting information from a buffer like this is kinda hard. We need to only parse stuff thats important.
-The `unapack()` takes two parameters : 
-1. string that defines the format of the data held in the buffer.
-2. the buffer that needs to be parsed.
+## Uso rápido
 
-![IPv4](https://github.com/shreyasgune/Packet-Sniffer/blob/master/ipv4format.PNG)
+Veja as opções disponíveis:
 
-Look at IPV4 packet header above.
-So what is `"!BBHHHBBH4 s4 s."` ?
+```bash
+python3 sniff-it.py --help
+```
 
-`! => Python Type Big Endian`
-`B => Python Type Integer (1 byte)`
-`H => Python Type Integer (2 bytes)`
-`s => Python Type String (n bytes)`
+Analise a captura de validação do projeto:
 
- The first character represents the byte order of the data, for network packets, it's Big Endian.
- 
-![Data Sheet](https://github.com/shreyasgune/Packet-Sniffer/blob/master/datasheet_unpack.PNG)
+```bash
+python3 sniff-it.py --pcap validation-ipv6-icmp-arp.pcap --max-packets 5
+```
 
-![TCP Header](https://github.com/shreyasgune/Packet-Sniffer/blob/master/tcpheader.PNG)
+Grave a saída em outro arquivo de log:
 
-If you wan't to read more stuff : [Python Forensics](http://www.amazon.com/Python-Forensics-workbench-inventing-technology/dp/0124186769) by Chet Hosmer is your best bet.
+```bash
+python3 sniff-it.py --pcap validation-ipv6-icmp-arp.pcap --log minha-analise.log
+```
 
-## Motivation
-I always wondered how Wireshark worked. This was my attempt to get under the hood and see for myself what exactly was going on.
-Networking can be so abstract until you peek into the RAW data and see what is up.
+Processe todos os pacotes de um PCAP:
 
+```bash
+python3 sniff-it.py --pcap captura.pcap --max-packets 0
+```
 
-## Installation
-The way things work in Linux are different from Windows. The API bindings for Sockets on Windows use Winsock and some other drivers.
-My implementation is is for Linux because things are a bit straightforward. 
-Clone the git : `git clone <repo-url>` or `wget` it or something. 
-Then just do : `sudo python <path>\sniff-it.py` . Doing `sudo` is important. Gotta have `root` priviledges.
+Capture pacotes ao vivo:
 
+```bash
+sudo python3 sniff-it.py --live
+```
 
+Capture ao vivo e pare depois de 50 pacotes:
 
-## API Reference
-All about Python Sockets [here](https://docs.python.org/2/library/socket.html)
-All about Python Structs [here](https://docs.python.org/2/library/struct.html)
-All about Python Sys     [here](https://docs.python.org/2/library/sys.html)
+```bash
+sudo python3 sniff-it.py --live --max-packets 50 --log sniff-it-live.log
+```
 
+## Opções do CLI
 
-## Tests
-No test cases were written. I manually tested it relentlessly but I never wrote automated tests. I know I should've have, but I just wanted to hack it enough to make it work.
+`--live`
 
-## Contributors
-If you want to contribute or add to it or make it better, more readable, go for it. Tweet me issues if you can  : [@shreyaslumos](https://www.twitter.com/shreyaslumos) 
+Captura pacotes da rede ao vivo usando socket raw. Esse modo funciona em Linux e
+exige root ou permissão equivalente para abrir sockets raw.
 
-## License
-<a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">Python Packet Sniffer</span> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.
+`--pcap CAMINHO`
 
+Lê pacotes de um arquivo `.pcap`. Esse é o modo recomendado para testes,
+validação e análise reproduzível.
+
+`--log CAMINHO`
+
+Define o arquivo onde a saída também será gravada. O valor padrão é
+`sniff-it.log`.
+
+`--max-packets N`
+
+Para depois de `N` pacotes. O valor padrão é `0`, que significa sem limite.
+Valores negativos são recusados.
+
+Os modos `--live` e `--pcap` são mutuamente exclusivos. Um deles sempre deve ser
+informado.
+
+## Saída
+
+Para cada pacote, o programa mostra:
+
+- número do pacote;
+- cabeçalho Ethernet;
+- protocolo de rede identificado;
+- campos principais do protocolo de transporte, quando suportado;
+- alertas ARP, quando houver.
+
+Exemplo resumido:
+
+```text
+Pacote 1
+############### Ethernet ###############
+MAC Destino: 66:77:88:99:aa:bb
+MAC Origem: 00:11:22:33:44:55
+EtherType: 0x0800
+############### IPv4 ###############
+Versão: 4
+TTL: 64
+Protocolo: 1
+IP Origem: 192.0.2.10
+IP Destino: 192.0.2.1
+########## ICMP ##########
+Tipo: 8
+Código: 0
+Checksum: 0x0000
+```
+
+## Detector de ARP spoofing
+
+O detector fica em `tools/arp_detector.py` e mantém estado em memória durante a
+execução. Ele observa associações entre IPs e MACs e emite alertas quando
+encontra padrões suspeitos:
+
+- mesmo IP aparecendo com MAC diferente;
+- ARP gratuito repetido várias vezes dentro de uma janela curta;
+- mesmo MAC reivindicando vários IPs.
+
+Alertas aparecem junto do pacote ARP no terminal e também são gravados no log.
+
+Exemplo de alerta:
+
+```text
+[ALERTA 2026-07-02T09:15:30] Conflito de associação IP-MAC: IP 192.0.2.1 estava associado ao MAC 00:11:22:33:44:55 e agora foi visto com o MAC 66:77:88:99:aa:bb.
+```
+
+Importante: o detector sinaliza comportamentos suspeitos, mas não bloqueia nem
+previne ataques. Falsos positivos podem ocorrer em cenários legítimos, como
+DHCP, troca de placa de rede, reinício de máquinas ou mudanças de topologia.
+
+## Arquivos PCAP
+
+O modo `--pcap` aceita arquivos no formato PCAP clássico. Arquivos `.pcapng` não
+são suportados diretamente nesta versão.
+
+Para gerar captura com `tcpdump`:
+
+```bash
+sudo tcpdump -i any -w captura.pcap
+```
+
+Depois, analise sem `sudo`:
+
+```bash
+python3 sniff-it.py --pcap captura.pcap --log sniff-it.log
+```
+
+## Testes
+
+Execute todos os testes:
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+Os testes cobrem:
+
+- parser de Ethernet, IPv4, IPv6, TCP, UDP, ICMP, ICMPv6 e ARP;
+- leitura de PCAP;
+- formatação dos pacotes;
+- alertas do detector ARP usando a captura de validação;
+- comportamento básico do CLI.
+
+## Limitações conhecidas
+
+- Captura ao vivo focada em Linux.
+- `--live` exige root ou `CAP_NET_RAW`.
+- Leitura offline suporta `.pcap`, não `.pcapng`.
+- IPv6 extension headers não são percorridos; o parser usa o `Next Header` do
+  cabeçalho base.
+- O projeto interpreta cabeçalhos e metadados principais; payload de aplicação
+  não é decodificado.
+- A detecção ARP é heurística e focada em ARP sobre Ethernet/IPv4.
+
+## Licença
+
+Este projeto deriva de um packet sniffer didático originalmente licenciado sob
+[Creative Commons Attribution-NonCommercial 4.0 International](https://creativecommons.org/licenses/by-nc/4.0/).
+Mantenha os termos da licença original ao reutilizar ou distribuir o código.
