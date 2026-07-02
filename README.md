@@ -189,6 +189,12 @@ Execute todos os testes:
 python3 -m unittest discover -s tests
 ```
 
+Para ver cada teste executado pelo nome:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
 Os testes cobrem:
 
 - parser de Ethernet, IPv4, IPv6, TCP, UDP, ICMP, ICMPv6 e ARP;
