@@ -1,0 +1,52 @@
+Packet-Sniffer - Tasks do escopo
+
+Fonte: `Definicao_Trabalho-redes.pdf` e requisitos derivados em `REQUISITOS_NOVA_VERSAO.md`.
+
+Escopo estabelecido:
+- [x] Portar base para Python 3
+- [x] Usar captura ao vivo em Linux com raw socket `AF_PACKET`
+- [x] Permitir leitura de arquivo `.pcap` para testes
+- [x] Mostrar pacotes interpretados no terminal
+- [x] Gravar toda saida em arquivo `.log`
+- [x] Separar captura, parsing, deteccao e saida
+- [x] Usar `bytes` corretamente, sem `ord()`
+- [x] Usar `struct.unpack` nos cabecalhos
+- [x] Tratar pacotes curtos ou malformados
+
+Protocolos e despacho:
+- [x] Interpretar Ethernet: MAC destino, MAC origem, EtherType
+- [x] Despachar por EtherType: IPv4, IPv6, ARP
+- [x] Interpretar IPv4: versao, tamanho cabecalho, TTL, protocolo, IP origem, IP destino
+- [x] Despachar IPv4 por `protocol`: TCP, UDP, ICMP
+- [x] Interpretar IPv6: versao, traffic class, flow label, payload length, next header, hop limit, IP origem, IP destino
+- [x] Despachar IPv6 por `next header`: TCP, UDP, ICMPv6
+- [x] Interpretar TCP: porta origem, porta destino, sequencia, confirmacao, tamanho cabecalho
+- [x] Interpretar UDP: porta origem, porta destino, tamanho, checksum
+- [x] Interpretar ICMP: tipo, codigo, checksum
+- [x] Interpretar ICMPv6: tipo, codigo, checksum
+- [x] Interpretar ARP: hardware type, protocol type, HLEN, PLEN, opcode, sender MAC/IP, target MAC/IP
+
+Detector ARP spoofing:
+- [x] Criar modulo `tools/arp_detector.py`
+- [x] Receber campos ARP ja interpretados
+- [x] Manter tabela IP -> MAC observada
+- [x] Manter tabela MAC -> IPs observados
+- [x] Detectar conflito IP-MAC
+- [x] Detectar ARPs nao solicitados repetidos em janela de tempo
+- [x] Detectar mesmo MAC reivindicando varios IPs
+- [x] Para ARP anomalo, mostrar aviso junto ao pacote no terminal
+- [x] Para ARP anomalo, gravar aviso no arquivo `.log`
+- [x] Aviso inclui data/hora e motivo do alerta
+
+Validacao exigida:
+- [x] Comparar campos interpretados com Wireshark ou `tshark` usando mesma captura `.pcap`
+- [ ] Validar detector ARP em maquinas virtuais com `arpspoof` ou `ettercap`
+- [ ] Registrar evidencia de que ataque ARP spoofing gera alerta
+- [ ] Registrar evidencia de que trafego ARP legitimo comum nao gera excesso de alertas
+
+Limitacoes do escopo:
+- [x] Execucao focada em Linux
+- [x] Captura ao vivo exige root ou `CAP_NET_RAW`
+- [x] Deteccao focada em ARP sobre IPv4/Ethernet
+- [x] Sistema detecta ataques, mas nao bloqueia nem previne
+- [x] Falsos positivos possiveis em DHCP, reinicio de maquinas ou mudancas legitimas de rede
